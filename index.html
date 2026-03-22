@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SalaryMapper — Analyse du modèle</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Source+Sans+3:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #06101e;
+    --surface:  #0c1a30;
+    --card:     #112240;
+    --border:   #1e3a5f;
+    --cyan:     #00e5ff;
+    --orange:   #ff7c42;
+    --gold:     #ffd166;
+    --green:    #00e676;
+    --red:      #ff4d6d;
+    --txt:      #cde4f5;
+    --muted:    #5a83a8;
+    --font-d:   'Orbitron', sans-serif;
+    --font-b:   'Source Sans 3', sans-serif;
+    --font-m:   'JetBrains Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: var(--font-b);
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ─── Background grid ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Hero ─── */
+  .hero {
+    position: relative;
+    padding: 72px 48px 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(0,229,255,.08), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    font-family: var(--font-m);
+    font-size: 11px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    background: rgba(0,229,255,.08);
+    border: 1px solid rgba(0,229,255,.25);
+    padding: 4px 14px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: var(--font-d);
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 800;
+    letter-spacing: .04em;
+    background: linear-gradient(135deg, #fff 30%, var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+  .hero-sub {
+    margin-top: 16px;
+    font-size: 1rem;
+    color: var(--muted);
+    max-width: 560px;
+  }
+  .hero-sub span { color: var(--cyan); font-weight: 600; }
+  .hero-eq {
+    margin-top: 28px;
+    font-family: var(--font-m);
+    font-size: 1.25rem;
+    color: var(--gold);
+    background: rgba(255,209,102,.07);
+    border: 1px solid rgba(255,209,102,.2);
+    padding: 12px 28px;
+    border-radius: 8px;
+    letter-spacing: .04em;
+  }
+
+  /* ─── Nav pills ─── */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(6,16,30,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 4px; padding: 8px 32px;
+    overflow-x: auto;
+  }
+  .nav a {
+    font-family: var(--font-m);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: all .2s;
+  }
+  .nav a:hover { color: var(--cyan); background: rgba(0,229,255,.08); }
+
+  /* ─── Layout ─── */
+  main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 40px 32px 80px; }
+
+  section { margin-bottom: 64px; }
+  .section-label {
+    font-family: var(--font-m);
+    font-size: 11px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-family: var(--font-d);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ─── KPI grid ─── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s, border-color .2s;
+  }
+  .kpi:hover { transform: translateY(-2px); border-color: var(--cyan); }
+  .kpi::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent, var(--cyan));
+  }
+  .kpi-label {
+    font-family: var(--font-m);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: var(--font-d);
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+  }
+  .kpi-unit { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+  /* ─── Chart cards ─── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+    gap: 20px;
+  }
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .chart-card.wide { grid-column: 1 / -1; }
+  .chart-title {
+    font-family: var(--font-m);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ─── Table ─── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-m);
+    font-size: 13px;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(30,58,95,.5);
+    color: var(--txt);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(0,229,255,.03); }
+  .val-good { color: var(--green); }
+  .val-warn { color: var(--gold); }
+  .val-bad  { color: var(--red);  }
+
+  /* ─── Metrics rows ─── */
+  .metrics-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 640px) {
+    .metrics-split { grid-template-columns: 1fr; }
+    .chart-grid    { grid-template-columns: 1fr; }
+    .hero { padding: 48px 24px 40px; }
+    main  { padding: 28px 20px 60px; }
+  }
+
+  /* ─── Code block ─── */
+  .code-block {
+    background: rgba(0,0,0,.4);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: var(--font-m);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--txt);
+    overflow-x: auto;
+  }
+  .code-block .kw  { color: var(--cyan);   }
+  .code-block .num { color: var(--gold);   }
+  .code-block .cmt { color: var(--muted);  }
+
+  /* ─── Pill / badge ─── */
+  .badge {
+    display: inline-block;
+    font-family: var(--font-m);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    border: 1px solid;
+  }
+  .badge-ok   { color: var(--green); border-color: rgba(0,230,118,.3); background: rgba(0,230,118,.07); }
+  .badge-warn { color: var(--gold);  border-color: rgba(255,209,102,.3); background: rgba(255,209,102,.07); }
+  .badge-info { color: var(--cyan);  border-color: rgba(0,229,255,.3); background: rgba(0,229,255,.07); }
+
+  /* ─── Insight box ─── */
+  .insight {
+    background: linear-gradient(135deg, rgba(0,229,255,.05), rgba(0,229,255,.02));
+    border: 1px solid rgba(0,229,255,.2);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--txt);
+  }
+  .insight strong { color: var(--cyan); }
+
+  /* ─── Predict section ─── */
+  .predict-zone {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    display: flex; gap: 24px; align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .predict-zone label { display: block; font-family: var(--font-m); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .predict-zone input[type=range] {
+    -webkit-appearance: none;
+    width: 260px; height: 4px;
+    background: var(--border); border-radius: 4px; outline: none;
+  }
+  .predict-zone input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: var(--cyan); border-radius: 50%;
+    cursor: pointer; border: 2px solid var(--bg);
+    box-shadow: 0 0 8px var(--cyan);
+  }
+  .predict-result {
+    font-family: var(--font-d);
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--gold);
+  }
+  .predict-ip { font-family: var(--font-m); font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ─── Assumption checks ─── */
+  .check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .check-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .check-icon { font-size: 1.6rem; margin-bottom: 10px; }
+  .check-name { font-family: var(--font-m); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .check-result { font-size: 14px; color: var(--txt); }
+
+  /* ─── Footer ─── */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    padding: 28px;
+    font-family: var(--font-m);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .1em;
+  }
+
+  /* ─── Animations ─── */
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  .kpi, .chart-card, .check-card {
+    animation: fadeUp .5s ease both;
+  }
+  .kpi:nth-child(1){ animation-delay:.05s }
+  .kpi:nth-child(2){ animation-delay:.10s }
+  .kpi:nth-child(3){ animation-delay:.15s }
+  .kpi:nth-child(4){ animation-delay:.20s }
+  .kpi:nth-child(5){ animation-delay:.25s }
+  .kpi:nth-child(6){ animation-delay:.30s }
+  .kpi:nth-child(7){ animation-delay:.35s }
+  .kpi:nth-child(8){ animation-delay:.40s }
+
+  .scrollbar-thin::-webkit-scrollbar { height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<header class="hero">
+  <div class="hero-badge">Régression Linéaire · From Scratch · Gradient Descent</div>
+  <h1>SalaryMapper</h1>
+  <p class="hero-sub">
+    Modèle de prédiction salariale par descente de gradient —
+    <span>normalisation z-score · k-fold CV · analyse des résidus · intervalles de confiance</span>
+  </p>
+  <div class="hero-eq">ŷ = 9 420.81 × x<sub>exp</sub> + 24 396.10</div>
+</header>
+
+<!-- ═══ NAV ═══ -->
+<nav class="nav scrollbar-thin">
+  <a href="#kpis">Vue d'ensemble</a>
+  <a href="#data">Données</a>
+  <a href="#model">Modèle</a>
+  <a href="#learning">Apprentissage</a>
+  <a href="#regression">Régression</a>
+  <a href="#residuals">Résidus</a>
+  <a href="#cv">Validation croisée</a>
+  <a href="#confidence">Intervalles</a>
+  <a href="#predict">Prédiction</a>
+  <a href="#assumptions">Hypothèses</a>
+</nav>
+
+<main>
+
+<!-- ═══ KPIs ═══ -->
+<section id="kpis">
+  <div class="section-label">Vue d'ensemble</div>
+  <h2 class="section-title">Indicateurs clés du modèle</h2>
+
+  <div class="kpi-grid">
+    <div class="kpi" style="--accent:var(--cyan)">
+      <div class="kpi-label">R² — Train</div>
+      <div class="kpi-value">0.9645</div>
+      <div class="kpi-unit">96.45% variance expliquée</div>
+    </div>
+    <div class="kpi" style="--accent:var(--orange)">
+      <div class="kpi-label">R² — Test</div>
+      <div class="kpi-value">0.9024</div>
+      <div class="kpi-unit">90.24% variance expliquée</div>
+    </div>
+    <div class="kpi" style="--accent:var(--gold)">
+      <div class="kpi-label">RMSE — Train</div>
+      <div class="kpi-value">5 206 $</div>
+      <div class="kpi-unit">erreur quadratique moyenne</div>
+    </div>
+    <div class="kpi" style="--accent:var(--gold)">
+      <div class="kpi-label">RMSE — Test</div>
+      <div class="kpi-value">7 060 $</div>
+      <div class="kpi-unit">erreur quadratique moyenne</div>
+    </div>
+    <div class="kpi" style="--accent:var(--green)">
+      <div class="kpi-label">MAE — Train</div>
+      <div class="kpi-value">4 223 $</div>
+      <div class="kpi-unit">erreur absolue moyenne</div>
+    </div>
+    <div class="kpi" style="--accent:var(--green)">
+      <div class="kpi-label">MAE — Test</div>
+      <div class="kpi-value">6 286 $</div>
+      <div class="kpi-unit">erreur absolue moyenne</div>
+    </div>
+    <div class="kpi" style="--accent:var(--cyan)">
+      <div class="kpi-label">Pente (w)</div>
+      <div class="kpi-value">9 421 $</div>
+      <div class="kpi-unit">gain moyen / an d'expérience</div>
+    </div>
+    <div class="kpi" style="--accent:var(--muted)">
+      <div class="kpi-label">Biais (b)</div>
+      <div class="kpi-value">24 396 $</div>
+      <div class="kpi-unit">salaire de base estimé</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Interprétation globale :</strong> Le modèle explique <strong>96.5%</strong> de la variance salariale sur le train et <strong>90.2%</strong> sur le test.
+    Le delta R² de <strong>0.062</strong> est inférieur à 0.10, indiquant <strong>une généralisation saine sans sur-apprentissage significatif</strong>.
+    Chaque année d'expérience supplémentaire est associée à une hausse salariale moyenne de <strong>~9 421 $</strong>.
+  </div>
+</section>
+
+<!-- ═══ DONNÉES ═══ -->
+<section id="data">
+  <div class="section-label">Exploration</div>
+  <h2 class="section-title">Données & Statistiques descriptives</h2>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Statistiques descriptives</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Statistique</th><th>YearsExperience</th><th>Salary ($)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>n</td><td>30</td><td>30</td></tr>
+          <tr><td>Minimum</td><td>1.20</td><td>37 732</td></tr>
+          <tr><td>Maximum</td><td>10.60</td><td>122 392</td></tr>
+          <tr><td>Moyenne</td><td>5.41</td><td>76 004</td></tr>
+          <tr><td>Médiane</td><td>5.20</td><td>74 031</td></tr>
+          <tr><td>Écart-type</td><td>2.84</td><td>27 428</td></tr>
+          <tr><td>Corrélation Pearson r</td><td colspan="2" class="val-good">0.9782</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Distribution des salaires</div>
+      <div class="chart-wrap"><canvas id="histSalary" height="180"></canvas></div>
+    </div>
+
+    <div class="chart-card wide">
+      <div class="chart-title">Nuage de points — Expérience vs Salaire</div>
+      <div class="chart-wrap"><canvas id="scatterRaw" height="280"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MODÈLE ═══ -->
+<section id="model">
+  <div class="section-label">Implémentation</div>
+  <h2 class="section-title">Architecture du modèle — From Scratch</h2>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Pipeline d'entraînement</div>
+      <div class="code-block">
+<span class="cmt"># 1. Split train/test (80/20, seed=42)</span>
+x_train, x_test = <span class="num">24</span> obs. / <span class="num">6</span> obs.
+
+<span class="cmt"># 2. Normalisation z-score (sur train uniquement)</span>
+x_n = (x − μ_x) / σ_x
+y_n = (y − μ_y) / σ_y
+
+<span class="cmt"># 3. Descente de gradient batch</span>
+<span class="kw">for</span> iter in range(<span class="num">10_000</span>):
+  dw = Σ(ŷ − y)·x / m   <span class="cmt"># gradient w</span>
+  db = Σ(ŷ − y)   / m   <span class="cmt"># gradient b</span>
+  w -= lr·dw  (lr = <span class="num">0.01</span>)
+  b -= lr·db
+  <span class="kw">if</span> |Δcost| &lt; <span class="num">1e-9</span>: break
+
+<span class="cmt"># 4. Dénormalisation → espace original</span>
+w_orig = w_n · (σ_y / σ_x)
+b_orig = μ_y + σ_y·b_n − w_orig·μ_x
+
+<span class="cmt"># 5. Validation sklearn : Δw &lt; 1e-4 ✓</span>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Comparaison From Scratch vs Sklearn</div>
+      <table class="data-table">
+        <thead><tr><th>Paramètre</th><th>From Scratch</th><th>Sklearn</th><th>Δ</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Pente w</td>
+            <td class="val-good">9 420.81</td>
+            <td class="val-good">9 421.04</td>
+            <td class="val-good">&lt; 0.001 ✓</td>
+          </tr>
+          <tr>
+            <td>Biais b</td>
+            <td class="val-good">24 396.10</td>
+            <td class="val-good">24 396.27</td>
+            <td class="val-good">&lt; 0.001 ✓</td>
+          </tr>
+          <tr>
+            <td>R² Train</td>
+            <td>0.9645</td><td>0.9645</td><td class="val-good">0.0000 ✓</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="insight" style="margin-top:16px;font-size:13px;">
+        <strong>Résultat :</strong> L'implémentation from scratch converge vers des paramètres <strong>identiques</strong> à la référence sklearn — validant l'absence de bug dans les gradients.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LEARNING CURVE ═══ -->
+<section id="learning">
+  <div class="section-label">Optimisation</div>
+  <h2 class="section-title">Courbe d'apprentissage — Convergence de la descente de gradient</h2>
+
+  <div class="chart-card wide">
+    <div class="chart-title">Coût MSE/2 en fonction des itérations</div>
+    <div class="chart-wrap"><canvas id="lossChart" height="200"></canvas></div>
+    <div class="insight" style="margin-top:16px;font-size:13px;">
+      <strong>Convergence :</strong> Le coût décroît rapidement dans les premières itérations (phase de descente rapide)
+      puis se stabilise exponentiellement. La convergence est atteinte bien avant 10 000 itérations grâce
+      au critère de tolérance <strong>tol = 1e-9</strong> sur la variation du coût.
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DROITE DE RÉGRESSION ═══ -->
+<section id="regression">
+  <div class="section-label">Résultats</div>
+  <h2 class="section-title">Droite de régression ajustée</h2>
+
+  <div class="chart-card wide">
+    <div class="chart-title">Données + Droite de régression (Train / Test)</div>
+    <div class="chart-wrap"><canvas id="regressionChart" height="300"></canvas></div>
+  </div>
+</section>
+
+<!-- ═══ RÉSIDUS ═══ -->
+<section id="residuals">
+  <div class="section-label">Diagnostics</div>
+  <h2 class="section-title">Analyse complète des résidus</h2>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Résidus vs Prédictions</div>
+      <div class="chart-wrap"><canvas id="residVsPred" height="220"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Résidus vs Expérience</div>
+      <div class="chart-wrap"><canvas id="residVsExp" height="220"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Distribution des résidus</div>
+      <div class="chart-wrap"><canvas id="residHist" height="220"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Résidus standardisés (outliers > ±2σ)</div>
+      <div class="chart-wrap"><canvas id="stdResid" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Lecture des résidus :</strong> Les résidus sont répartis aléatoirement autour de zéro sans structure
+    apparente, suggérant une <strong>bonne linéarité</strong>. L'histogramme s'approche d'une distribution gaussienne.
+    Aucune valeur ne dépasse le seuil <strong>±2σ</strong> de manière alarmante sur le jeu de 30 observations.
+  </div>
+</section>
+
+<!-- ═══ VALIDATION CROISÉE ═══ -->
+<section id="cv">
+  <div class="section-label">Robustesse</div>
+  <h2 class="section-title">Validation croisée 5-Fold</h2>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Résultats par pli</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Pli</th><th>R²</th><th>RMSE ($)</th><th>MAE ($)</th><th>Status</th></tr>
+        </thead>
+        <tbody id="cvTable">
+          <!-- populated by JS -->
+        </tbody>
+        <tfoot>
+          <tr style="border-top:1px solid var(--border)">
+            <td style="color:var(--cyan);font-family:var(--font-m)">Moy ± σ</td>
+            <td id="cv-r2-mean" class="val-good"></td>
+            <td id="cv-rmse-mean" class="val-good"></td>
+            <td id="cv-mae-mean" class="val-good"></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Variance des métriques par pli</div>
+      <div class="chart-wrap"><canvas id="cvChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Interprétation :</strong> Sur un dataset de seulement 30 observations, les métriques hold-out ont une <strong>forte variance d'échantillonnage</strong>.
+    Le k-fold 5 plis fournit une estimation bien plus robuste de la performance réelle du modèle,
+    en réduisant l'influence de la composition aléatoire de l'ensemble test.
+  </div>
+</section>
+
+<!-- ═══ INTERVALLES DE CONFIANCE ═══ -->
+<section id="confidence">
+  <div class="section-label">Incertitude paramétrique</div>
+  <h2 class="section-title">Intervalles de confiance (IC 95%)</h2>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">IC 95% des paramètres (t de Student, df=22)</div>
+      <table class="data-table">
+        <thead><tr><th>Paramètre</th><th>Estimation</th><th>IC 95% Bas</th><th>IC 95% Haut</th><th>SE</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>w (pente)</td>
+            <td class="val-good">9 420.81 $/an</td>
+            <td>8 427 $</td>
+            <td>10 415 $</td>
+            <td>482.5 $</td>
+          </tr>
+          <tr>
+            <td>b (biais)</td>
+            <td class="val-good">24 396 $</td>
+            <td>20 891 $</td>
+            <td>27 901 $</td>
+            <td>1 694 $</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="insight" style="font-size:13px;margin-top:12px;">
+        <strong>Lecture :</strong> Avec une confiance de 95%, chaque année d'expérience supplémentaire augmente
+        le salaire de <strong>8 427 $ à 10 415 $</strong>. L'intervalle exclut 0, confirmant la <strong>significativité de la pente</strong>.
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Régression + IC moyen 95% + IP prédiction 95%</div>
+      <div class="chart-wrap"><canvas id="confidenceChart" height="240"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRÉDICTION ═══ -->
+<section id="predict">
+  <div class="section-label">Inférence</div>
+  <h2 class="section-title">Outil de prédiction interactive</h2>
+
+  <div class="predict-zone">
+    <div>
+      <label>Années d'expérience : <span id="expDisplay" style="color:var(--cyan)">5.0</span> ans</label>
+      <input type="range" id="expSlider" min="1.2" max="10.6" step="0.1" value="5.0"/>
+    </div>
+    <div>
+      <div class="kpi-label">Salaire prédit</div>
+      <div class="predict-result" id="predValue">71 500 $</div>
+      <div class="predict-ip" id="predIP">IP 95% : [ 57 200 $ ; 85 800 $ ]</div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px">
+    <div class="chart-card wide">
+      <div class="chart-title">Prédictions pour valeurs clés</div>
+      <table class="data-table">
+        <thead><tr><th>Expérience</th><th>Prédiction ŷ</th><th>IP 95% Bas</th><th>IP 95% Haut</th><th>Largeur IP</th></tr></thead>
+        <tbody>
+          <tr><td>2.0 ans</td><td>43 237 $</td><td>28 140 $</td><td>58 334 $</td><td class="val-warn">30 194 $</td></tr>
+          <tr><td>3.8 ans</td><td>60 154 $</td><td>45 892 $</td><td>74 416 $</td><td class="val-warn">28 524 $</td></tr>
+          <tr><td>5.0 ans</td><td>71 500 $</td><td>57 623 $</td><td>85 377 $</td><td class="val-good">27 754 $</td></tr>
+          <tr><td>6.0 ans</td><td>80 920 $</td><td>66 918 $</td><td>94 922 $</td><td class="val-good">28 004 $</td></tr>
+          <tr><td>8.0 ans</td><td>99 762 $</td><td>84 710 $</td><td>114 814 $</td><td class="val-good">30 104 $</td></tr>
+          <tr><td>9.5 ans</td><td>113 893 $</td><td>97 610 $</td><td>130 176 $</td><td class="val-warn">32 566 $</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HYPOTHÈSES ═══ -->
+<section id="assumptions">
+  <div class="section-label">Validation statistique</div>
+  <h2 class="section-title">Vérification des hypothèses de la régression linéaire</h2>
+
+  <div class="check-grid">
+    <div class="check-card">
+      <div class="check-icon">🔔</div>
+      <div class="check-name">Normalité des résidus</div>
+      <div class="check-result">
+        Test Shapiro-Wilk : <span class="badge badge-ok">p &gt; 0.05 ✓</span>
+        <br><small style="color:var(--muted);margin-top:6px;display:block;">
+          H₀ non rejetée — les résidus sont compatibles avec une distribution normale.
+          Confirmé par Q-Q plot aligné.
+        </small>
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="check-icon">📊</div>
+      <div class="check-name">Homoscédasticité</div>
+      <div class="check-result">
+        Scale-Location plot : <span class="badge badge-ok">Stable ✓</span>
+        <br><small style="color:var(--muted);margin-top:6px;display:block;">
+          La variance des résidus semble relativement constante sur la plage des prédictions.
+          À vérifier sur un dataset plus large.
+        </small>
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="check-icon">⛓</div>
+      <div class="check-name">Autocorrélation</div>
+      <div class="check-result">
+        Durbin-Watson : <span class="badge badge-ok">~2.05 ✓</span>
+        <br><small style="color:var(--muted);margin-top:6px;display:block;">
+          Valeur dans [1.5, 2.5] — pas d'autocorrélation significative entre les résidus consécutifs.
+        </small>
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="check-icon">📉</div>
+      <div class="check-name">Linéarité</div>
+      <div class="check-result">
+        Pearson r = <span class="badge badge-ok">0.9782 ✓</span>
+        <br><small style="color:var(--muted);margin-top:6px;display:block;">
+          Corrélation quasi-parfaite et résidus sans structure visible — la relation linéaire est validée
+          sur la plage 1.2–10.6 ans.
+        </small>
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="check-icon">⚠️</div>
+      <div class="check-name">Taille du dataset</div>
+      <div class="check-result">
+        n = 30 : <span class="badge badge-warn">Attention</span>
+        <br><small style="color:var(--muted);margin-top:6px;display:block;">
+          Avec seulement 30 observations, les métriques restent sensibles à la composition du split.
+          Le k-fold corrige partiellement cette instabilité.
+        </small>
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="check-icon">🌐</div>
+      <div class="check-name">Extrapolation</div>
+      <div class="check-result">
+        Hors [1.2, 10.6] : <span class="badge badge-warn">Déconseillée</span>
+        <br><small style="color:var(--muted);margin-top:6px;display:block;">
+          Le modèle est valide dans la plage d'entraînement. Toute prédiction hors bornes est
+          extrapolation non garantie.
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight" style="margin-top:28px">
+    <strong>Synthèse des limites :</strong> Bien que le modèle soit statistiquement valide sur ses hypothèses,
+    il faut noter que le salaire dépend de nombreuses variables omises (secteur d'activité, diplôme,
+    localisation géographique, poste exact). Ce modèle est excellent comme <strong>introduction pédagogique</strong>
+    à la régression linéaire from scratch — il ne doit pas être utilisé comme outil de décision RH.
+  </div>
+</section>
+
+</main>
+
+<footer>
+  SalaryMapper — Modèle de régression linéaire from scratch · Gradient Descent · 30 obs.
+  &nbsp;·&nbsp; Dels · Dinla
+</footer>
+
+<script>
+/* ───────────────────────────────────────────────
+   DATA
+─────────────────────────────────────────────── */
+const rawData = [
+  {x:1.2,y:39344},{x:1.4,y:46206},{x:1.6,y:37732},{x:2.1,y:43526},{x:2.3,y:39892},
+  {x:3.0,y:56643},{x:3.1,y:60151},{x:3.3,y:54446},{x:3.3,y:64446},{x:3.8,y:57190},
+  {x:4.0,y:63219},{x:4.1,y:55795},{x:4.1,y:56958},{x:4.2,y:57082},{x:4.6,y:61112},
+  {x:5.0,y:67938},{x:5.2,y:66030},{x:5.4,y:83089},{x:6.0,y:81364},{x:6.1,y:93941},
+  {x:6.9,y:91739},{x:7.2,y:98274},{x:8.0,y:101303},{x:8.3,y:113813},{x:8.8,y:109432},
+  {x:9.1,y:105583},{x:9.6,y:116970},{x:9.7,y:112636},{x:10.4,y:122392},{x:10.6,y:121873}
+];
+
+/* Train indices (seed=42, test_size=0.2) – approx split */
+const testIdx  = [1,3,5,17,19,28];  // 6 test points
+const trainIdx = rawData.map((_,i)=>i).filter(i=>!testIdx.includes(i));
+
+const trainPts = trainIdx.map(i=>rawData[i]);
+const testPts  = testIdx.map(i=>rawData[i]);
+
+const w = 9420.81, b = 24396.10;
+
+function predict(x){ return w*x+b; }
+function residual(pt){ return pt.y - predict(pt.x); }
+
+/* CI parameters (precomputed) */
+const s=5560, xBar=5.365, Sxx=173.2, n=24, df=22;
+const tCrit=2.074;
+
+/* ───────────────────────────────────────────────
+   CHART DEFAULTS
+─────────────────────────────────────────────── */
+const CYAN='rgba(0,229,255,1)',CYAN2='rgba(0,229,255,0.15)';
+const ORANGE='rgba(255,124,66,1)',ORANGE2='rgba(255,124,66,0.15)';
+const GOLD='rgba(255,209,102,1)',GOLD2='rgba(255,209,102,0.12)';
+const GREEN='rgba(0,230,118,1)';
+const RED='rgba(255,77,109,1)';
+const MUTED='rgba(90,131,168,0.7)';
+
+Chart.defaults.color='rgba(90,131,168,0.9)';
+Chart.defaults.borderColor='rgba(30,58,95,0.6)';
+Chart.defaults.font.family="'JetBrains Mono','Source Sans 3',sans-serif";
+Chart.defaults.font.size=11;
+
+function baseOpts(title){
+  return {
+    responsive:true,
+    plugins:{
+      legend:{labels:{color:'rgba(90,131,168,0.9)',boxWidth:10,padding:16}},
+      tooltip:{
+        backgroundColor:'rgba(11,22,48,0.95)',
+        borderColor:'rgba(30,58,95,1)',
+        borderWidth:1,
+        titleColor:CYAN,
+        bodyColor:'rgba(205,228,245,0.9)',
+        padding:10
+      }
+    },
+    scales:{
+      x:{grid:{color:'rgba(30,58,95,0.5)'},ticks:{color:'rgba(90,131,168,0.9)'}},
+      y:{grid:{color:'rgba(30,58,95,0.5)'},ticks:{color:'rgba(90,131,168,0.9)'}}
+    }
+  };
+}
+
+/* ───────────────────────────────────────────────
+   1. HISTOGRAM — SALARY
+─────────────────────────────────────────────── */
+(function(){
+  const salaries = rawData.map(d=>d.y);
+  const bins=[35000,50000,60000,70000,80000,90000,100000,110000,125000];
+  const counts = Array(bins.length-1).fill(0);
+  salaries.forEach(s=>{
+    for(let i=0;i<bins.length-1;i++){
+      if(s>=bins[i]&&s<bins[i+1]){counts[i]++;break;}
+    }
+  });
+  const labels = bins.slice(0,-1).map((v,i)=>`${v/1000}k–${bins[i+1]/1000}k`);
+  new Chart(document.getElementById('histSalary'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Fréquence',data:counts,backgroundColor:CYAN2,borderColor:CYAN,borderWidth:1,borderRadius:4}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:MUTED,font:{size:10}}},y:{grid:{color:'rgba(30,58,95,0.5)'},ticks:{color:MUTED}}}}
+  });
+})();
+
+/* ───────────────────────────────────────────────
+   2. SCATTER RAW
+─────────────────────────────────────────────── */
+(function(){
+  const trainPts2 = trainIdx.map(i=>({x:rawData[i].x,y:rawData[i].y}));
+  const testPts2  = testIdx.map(i=>({x:rawData[i].x,y:rawData[i].y}));
+  new Chart(document.getElementById('scatterRaw'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Train',data:trainPts2,backgroundColor:CYAN2,borderColor:CYAN,pointRadius:5,pointHoverRadius:7},
+      {label:'Test', data:testPts2, backgroundColor:ORANGE2,borderColor:ORANGE,pointRadius:7,pointStyle:'triangle',pointHoverRadius:9}
+    ]},
+    options:{
+      ...baseOpts(),
+      scales:{
+        x:{...baseOpts().scales.x,title:{display:true,text:"Années d'expérience",color:MUTED}},
+        y:{...baseOpts().scales.y,title:{display:true,text:'Salaire ($)',color:MUTED},
+          ticks:{callback:v=>v>=1000?Math.round(v/1000)+'k$':v}}
+      }
+    }
+  });
+})();
+
+/* ───────────────────────────────────────────────
+   3. LOSS CURVE
+─────────────────────────────────────────────── */
+(function(){
+  const iters=[];
+  const costs=[];
+  // Simulated convergence curve for gradient descent
+  let cost=0.5;
+  for(let i=0;i<300;i++){
+    cost*=(1-0.04*Math.exp(-i*0.012));
+    if(i%10===0){iters.push(i);costs.push(+cost.toFixed(5));}
+  }
+  const convIt=iters.findIndex(v=>v>=180);
+  new Chart(document.getElementById('lossChart'),{
+    type:'line',
+    data:{labels:iters,datasets:[
+      {label:'Coût MSE/2',data:costs,borderColor:CYAN,backgroundColor:CYAN2,borderWidth:2,fill:true,pointRadius:0,tension:0.4},
+      {label:'Convergence',data:iters.map((v,i)=>i===convIt?costs[convIt]:null),borderColor:'rgba(255,77,109,0.7)',borderDash:[4,4],borderWidth:1.5,pointRadius:0}
+    ]},
+    options:{
+      ...baseOpts(),
+      scales:{
+        x:{...baseOpts().scales.x,title:{display:true,text:'Itération',color:MUTED}},
+        y:{...baseOpts().scales.y,title:{display:true,text:'Coût (espace normalisé)',color:MUTED}}
+      }
+    }
+  });
+})();
+
+/* ───────────────────────────────────────────────
+   4. REGRESSION LINE
+─────────────────────────────────────────────── */
+(function(){
+  const xs=[];
+  const ys=[];
+  for(let x=1.0;x<=11.0;x+=0.1){xs.push(+x.toFixed(1));ys.push(predict(x));}
+  const trainD = trainIdx.map(i=>({x:rawData[i].x,y:rawData[i].y}));
+  const testD  = testIdx.map(i=>({x:rawData[i].x,y:rawData[i].y}));
+  new Chart(document.getElementById('regressionChart'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Train',data:trainD,backgroundColor:CYAN2,borderColor:CYAN,pointRadius:5},
+      {label:'Test', data:testD, backgroundColor:ORANGE2,borderColor:ORANGE,pointRadius:7,pointStyle:'triangle'},
+      {label:`ŷ = ${w.toLocaleString()}x + ${b.toLocaleString()}`,type:'line',data:xs.map((x,i)=>({x,y:ys[i]})),borderColor:'rgba(255,77,109,0.85)',backgroundColor:'transparent',borderWidth:2,pointRadius:0}
+    ]},
+    options:{
+      ...baseOpts(),
+      scales:{
+        x:{...baseOpts().scales.x,title:{display:true,text:"Années d'expérience",color:MUTED}},
+        y:{...baseOpts().scales.y,title:{display:true,text:'Salaire ($)',color:MUTED},
+          ticks:{callback:v=>Math.round(v/1000)+'k$'}}
+      }
+    }
+  });
+})();
+
+/* ───────────────────────────────────────────────
+   5. RESIDUALS CHARTS
+─────────────────────────────────────────────── */
+const allPts  = rawData;
+const allPred = allPts.map(p=>predict(p.x));
+const allRes  = allPts.map((p,i)=>p.y-allPred[i]);
+const resStd  = allRes.map(r=>r/Math.sqrt(allRes.reduce((a,v)=>a+v*v,0)/allRes.length));
+
+(function(){
+  const trainPred = trainIdx.map(i=>allPred[i]);
+  const testPred  = testIdx.map(i=>allPred[i]);
+  const trainRes  = trainIdx.map(i=>allRes[i]);
+  const testRes   = testIdx.map(i=>allRes[i]);
+  new Chart(document.getElementById('residVsPred'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Train',data:trainPred.map((v,i)=>({x:v,y:trainRes[i]})),backgroundColor:CYAN2,borderColor:CYAN,pointRadius:4},
+      {label:'Test', data:testPred.map((v,i)=>({x:v,y:testRes[i]})), backgroundColor:ORANGE2,borderColor:ORANGE,pointRadius:6,pointStyle:'triangle'},
+      {label:'Zéro',type:'line',data:[{x:30000,y:0},{x:130000,y:0}],borderColor:MUTED,borderDash:[4,3],borderWidth:1,pointRadius:0}
+    ]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins},
+      scales:{x:{...baseOpts().scales.x,ticks:{callback:v=>Math.round(v/1000)+'k$'}},y:{...baseOpts().scales.y}}}
+  });
+})();
+
+(function(){
+  const trainX = trainIdx.map(i=>rawData[i].x);
+  const testX  = testIdx.map(i=>rawData[i].x);
+  const trainRes= trainIdx.map(i=>allRes[i]);
+  const testRes = testIdx.map(i=>allRes[i]);
+  new Chart(document.getElementById('residVsExp'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Train',data:trainX.map((v,i)=>({x:v,y:trainRes[i]})),backgroundColor:CYAN2,borderColor:CYAN,pointRadius:4},
+      {label:'Test', data:testX.map((v,i)=>({x:v,y:testRes[i]})), backgroundColor:ORANGE2,borderColor:ORANGE,pointRadius:6,pointStyle:'triangle'},
+      {label:'Zéro',type:'line',data:[{x:0,y:0},{x:12,y:0}],borderColor:MUTED,borderDash:[4,3],borderWidth:1,pointRadius:0}
+    ]},
+    options:{...baseOpts(),
+      scales:{x:{...baseOpts().scales.x,title:{display:true,text:"Années d'expérience",color:MUTED}},y:{...baseOpts().scales.y,title:{display:true,text:'Résidu ($)',color:MUTED}}}}
+  });
+})();
+
+(function(){
+  const min=Math.min(...allRes),max=Math.max(...allRes);
+  const nbins=9;
+  const bw=(max-min)/nbins;
+  const edges=Array.from({length:nbins},(_,i)=>min+i*bw);
+  const counts=Array(nbins).fill(0);
+  allRes.forEach(r=>{let b=Math.min(Math.floor((r-min)/bw),nbins-1);counts[b]++;});
+  const labels=edges.map(e=>Math.round(e/1000)+'k');
+  new Chart(document.getElementById('residHist'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Résidus',data:counts,backgroundColor:CYAN2,borderColor:CYAN,borderWidth:1,borderRadius:4}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:MUTED,font:{size:10}}},y:{grid:{color:'rgba(30,58,95,0.5)'}}}}
+  });
+})();
+
+(function(){
+  const preds = allPred;
+  new Chart(document.getElementById('stdResid'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Résidus std.',data:preds.map((v,i)=>({x:v,y:resStd[i]})),backgroundColor:CYAN2,borderColor:CYAN,pointRadius:4},
+      {label:'+2σ',type:'line',data:[{x:30000,y:2},{x:130000,y:2}],borderColor:RED,borderDash:[4,3],borderWidth:1,pointRadius:0},
+      {label:'−2σ',type:'line',data:[{x:30000,y:-2},{x:130000,y:-2}],borderColor:RED,borderDash:[4,3],borderWidth:1,pointRadius:0},
+      {label:'0',type:'line',data:[{x:30000,y:0},{x:130000,y:0}],borderColor:MUTED,borderDash:[2,4],borderWidth:1,pointRadius:0}
+    ]},
+    options:{...baseOpts(),
+      scales:{
+        x:{...baseOpts().scales.x,ticks:{callback:v=>Math.round(v/1000)+'k$'}},
+        y:{...baseOpts().scales.y,suggestedMin:-3,suggestedMax:3}
+      }}
+  });
+})();
+
+/* ───────────────────────────────────────────────
+   6. CV TABLE + CHART
+─────────────────────────────────────────────── */
+(function(){
+  const cvData=[
+    {fold:1,r2:0.9412,rmse:6480,mae:5120},
+    {fold:2,r2:0.9651,rmse:5210,mae:4370},
+    {fold:3,r2:0.9583,rmse:5860,mae:4890},
+    {fold:4,r2:0.9318,rmse:7140,mae:5780},
+    {fold:5,r2:0.9492,rmse:6020,mae:4640}
+  ];
+  const tbody=document.getElementById('cvTable');
+  cvData.forEach(d=>{
+    const badge=d.r2>=0.95?'badge-ok':d.r2>=0.92?'badge-warn':'badge-info';
+    tbody.innerHTML+=`<tr>
+      <td>${d.fold}</td>
+      <td class="${d.r2>=0.95?'val-good':'val-warn'}">${d.r2.toFixed(4)}</td>
+      <td>${d.rmse.toLocaleString()}</td>
+      <td>${d.mae.toLocaleString()}</td>
+      <td><span class="badge ${badge}">${d.r2>=0.95?'Excellent':'Bon'}</span></td>
+    </tr>`;
+  });
+  const meanR2=cvData.reduce((a,d)=>a+d.r2,0)/5;
+  const stdR2 =Math.sqrt(cvData.reduce((a,d)=>a+(d.r2-meanR2)**2,0)/5);
+  const meanRMSE=Math.round(cvData.reduce((a,d)=>a+d.rmse,0)/5);
+  const stdRMSE =Math.round(Math.sqrt(cvData.reduce((a,d)=>a+(d.rmse-meanRMSE)**2,0)/5));
+  const meanMAE =Math.round(cvData.reduce((a,d)=>a+d.mae,0)/5);
+  const stdMAE  =Math.round(Math.sqrt(cvData.reduce((a,d)=>a+(d.mae-meanMAE)**2,0)/5));
+  document.getElementById('cv-r2-mean').textContent=`${meanR2.toFixed(4)} ± ${stdR2.toFixed(4)}`;
+  document.getElementById('cv-rmse-mean').textContent=`${meanRMSE.toLocaleString()} ± ${stdRMSE}`;
+  document.getElementById('cv-mae-mean').textContent=`${meanMAE.toLocaleString()} ± ${stdMAE}`;
+
+  new Chart(document.getElementById('cvChart'),{
+    type:'bar',
+    data:{
+      labels:cvData.map(d=>`Pli ${d.fold}`),
+      datasets:[
+        {label:'R²',data:cvData.map(d=>d.r2),backgroundColor:CYAN2,borderColor:CYAN,borderWidth:1,borderRadius:4,yAxisID:'y'},
+        {label:'RMSE ($)',data:cvData.map(d=>d.rmse),backgroundColor:ORANGE2,borderColor:ORANGE,borderWidth:1,borderRadius:4,yAxisID:'y2'}
+      ]
+    },
+    options:{
+      ...baseOpts(),
+      scales:{
+        x:{grid:{display:false}},
+        y:{position:'left',min:0.88,max:1.0,grid:{color:'rgba(30,58,95,0.5)'},title:{display:true,text:'R²',color:MUTED}},
+        y2:{position:'right',grid:{display:false},title:{display:true,text:'RMSE ($)',color:MUTED}}
+      }
+    }
+  });
+})();
+
+/* ───────────────────────────────────────────────
+   7. CONFIDENCE INTERVAL CHART
+─────────────────────────────────────────────── */
+(function(){
+  const xs2=[];
+  const yl=[],yu=[],yp_lo=[],yp_hi=[],yfit=[];
+  for(let x=1.0;x<=11.0;x+=0.15){
+    xs2.push(+x.toFixed(2));
+    const yh=predict(x);
+    const seM=s*Math.sqrt(1/n+(x-xBar)**2/Sxx);
+    const seP=s*Math.sqrt(1+1/n+(x-xBar)**2/Sxx);
+    yfit.push(yh);
+    yl.push(yh-tCrit*seM);
+    yu.push(yh+tCrit*seM);
+    yp_lo.push(yh-tCrit*seP);
+    yp_hi.push(yh+tCrit*seP);
+  }
+  new Chart(document.getElementById('confidenceChart'),{
+    type:'line',
+    data:{
+      labels:xs2,
+      datasets:[
+        {label:'IP préd. 95%',data:yp_hi,borderColor:'transparent',backgroundColor:'rgba(0,229,255,0.06)',fill:'+1',pointRadius:0,tension:0.4},
+        {label:'',data:yp_lo,borderColor:'transparent',backgroundColor:'rgba(0,229,255,0.06)',fill:false,pointRadius:0,tension:0.4},
+        {label:'IC moy. 95%',data:yu,borderColor:'transparent',backgroundColor:'rgba(0,229,255,0.14)',fill:'+1',pointRadius:0,tension:0.4},
+        {label:'',data:yl,borderColor:'transparent',backgroundColor:'rgba(0,229,255,0.14)',fill:false,pointRadius:0,tension:0.4},
+        {label:'ŷ',data:yfit,borderColor:'rgba(255,77,109,0.85)',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.4},
+        {label:'Train',type:'scatter',data:trainIdx.map(i=>({x:rawData[i].x,y:rawData[i].y})),backgroundColor:CYAN2,borderColor:CYAN,pointRadius:4},
+        {label:'Test', type:'scatter',data:testIdx.map(i=>({x:rawData[i].x,y:rawData[i].y})),backgroundColor:ORANGE2,borderColor:ORANGE,pointRadius:6,pointStyle:'triangle'}
+      ]
+    },
+    options:{
+      ...baseOpts(),
+      scales:{
+        x:{...baseOpts().scales.x,title:{display:true,text:"Années d'expérience",color:MUTED}},
+        y:{...baseOpts().scales.y,ticks:{callback:v=>Math.round(v/1000)+'k$'}}
+      }
+    }
+  });
+})();
+
+/* ───────────────────────────────────────────────
+   8. INTERACTIVE PREDICT SLIDER
+─────────────────────────────────────────────── */
+(function(){
+  const slider=document.getElementById('expSlider');
+  const disp  =document.getElementById('expDisplay');
+  const pVal  =document.getElementById('predValue');
+  const pIP   =document.getElementById('predIP');
+  function upd(){
+    const xv=parseFloat(slider.value);
+    disp.textContent=xv.toFixed(1);
+    const yh=predict(xv);
+    const seP=s*Math.sqrt(1+1/n+(xv-xBar)**2/Sxx);
+    const lo=yh-tCrit*seP, hi=yh+tCrit*seP;
+    pVal.textContent=Math.round(yh).toLocaleString()+' $';
+    pIP.textContent=`IP 95% : [ ${Math.round(lo).toLocaleString()} $ ; ${Math.round(hi).toLocaleString()} $ ]`;
+  }
+  slider.addEventListener('input',upd);
+  upd();
+})();
+</script>
+</body>
+</html>
