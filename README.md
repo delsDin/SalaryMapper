@@ -167,7 +167,7 @@ Exemples :
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/<username>/SalaryMapper.git
+git clone https://github.com/delsDin/SalaryMapper.git
 cd SalaryMapper
 
 # Installer les dépendances
